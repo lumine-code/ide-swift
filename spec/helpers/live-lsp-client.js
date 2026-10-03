@@ -92,7 +92,18 @@ class LiveLspClient {
           documentSymbol: { dynamicRegistration: true, hierarchicalDocumentSymbolSupport: true },
           formatting: { dynamicRegistration: true },
           rename: { dynamicRegistration: true, prepareSupport: true },
-          inlayHint: { dynamicRegistration: true },
+          inlayHint: {
+            dynamicRegistration: true,
+            resolveSupport: {
+              properties: [
+                "tooltip",
+                "textEdits",
+                "label.tooltip",
+                "label.location",
+                "label.command",
+              ],
+            },
+          },
           codeAction: {
             dynamicRegistration: true,
             dataSupport: true,
