@@ -119,6 +119,47 @@ describe("ide-swift adapter and distribution integrity", () => {
     ).toBe("6.4.0");
     expect(server.executablesOnPath).not.toHaveBeenCalled();
   });
+  it("resolves Apple's launcher to the selected Xcode toolchain before probing", async () => {
+    const selected =
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/sourcekit-lsp";
+    spyOn(fs.promises, "realpath").and.callFake(async (file) => file);
+    spyOn(server, "run").and.resolveTo(selected);
+    expect(await server.resolveExecutable("/usr/bin/sourcekit-lsp", "darwin")).toBe(selected);
+    expect(server.run).toHaveBeenCalledOnceWith("/usr/bin/xcrun", ["--find", "sourcekit-lsp"]);
+  });
+  it("keeps native Linux executables and explicit macOS toolchains independent of xcrun", async () => {
+    spyOn(fs.promises, "realpath").and.callFake(async (file) => file);
+    spyOn(server, "run");
+    expect(await server.resolveExecutable("/usr/bin/sourcekit-lsp", "linux")).toBe(
+      "/usr/bin/sourcekit-lsp",
+    );
+    const selected = path.join(directory, "usr", "bin", "sourcekit-lsp");
+    expect(await server.resolveExecutable(selected, "darwin")).toBe(selected);
+    expect(server.run).not.toHaveBeenCalled();
+  });
+  it("surfaces an unavailable selected Xcode toolchain instead of reusing its launcher", async () => {
+    spyOn(fs.promises, "realpath").and.callFake(async (file) => file);
+    spyOn(server, "run").and.rejectWith(new Error("No selected Xcode toolchain"));
+    await expectAsync(
+      server.resolveExecutable("/usr/bin/sourcekit-lsp", "darwin"),
+    ).toBeRejectedWithError(/No selected Xcode toolchain/);
+    server.run.and.resolveTo("/usr/bin/sourcekit-lsp");
+    await expectAsync(
+      server.resolveExecutable("/usr/bin/sourcekit-lsp", "darwin"),
+    ).toBeRejectedWithError(/did not resolve SourceKit-LSP/);
+  });
+  it("derives the launch environment from the resolved server's matched toolchain", async () => {
+    const executable = path.join(directory, "usr", "bin", "sourcekit-lsp");
+    fs.mkdirSync(path.dirname(executable), { recursive: true });
+    fs.copyFileSync(process.execPath, executable);
+    fs.chmodSync(executable, 0o755);
+    spyOn(server, "resolveExecutable").and.resolveTo(executable);
+    spyOn(server, "probe").and.resolveTo();
+    const launch = await server.resolveServer("/usr/bin/sourcekit-lsp", null);
+    expect(launch.command).toBe(executable);
+    expect(launch.env.SOURCEKIT_TOOLCHAIN_PATH).toBe(directory);
+    expect(server.probe).toHaveBeenCalledWith(executable, launch.env);
+  });
   it("skips an unusable PATH candidate but refuses to replace an explicit invalid selection", async () => {
     spyOn(server, "executablesOnPath").and.returnValue([
       path.join(directory, "absent"),

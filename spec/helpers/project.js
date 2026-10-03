@@ -2,7 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { pathToFileURL } = require("node:url");
-const { run, toolchainEnvironment } = require("../../lib/server");
+const { run, toolchainEnvironment, resolveExecutable } = require("../../lib/server");
 
 const source = `import Support
 public protocol Adder { func add(value: Int) -> Int }
@@ -47,9 +47,10 @@ const createProject = (rootPath) => {
   return { rootPath, filePath, supportPath, text: source, uri: pathToFileURL(filePath).href };
 };
 const prepareProject = async (fixture, serverPath, toolchainPath = "") => {
-  const env = { ...process.env, ...toolchainEnvironment(serverPath, toolchainPath) };
+  const command = await resolveExecutable(serverPath);
+  const env = { ...process.env, ...toolchainEnvironment(command, toolchainPath) };
   const swift = path.join(
-    path.dirname(serverPath),
+    path.dirname(command),
     process.platform === "win32" ? "swift.exe" : "swift",
   );
   await run(swift, ["build"], {
