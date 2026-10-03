@@ -93,7 +93,16 @@ class LiveLspClient {
           formatting: { dynamicRegistration: true },
           rename: { dynamicRegistration: true, prepareSupport: true },
           inlayHint: { dynamicRegistration: true },
-          codeAction: { dynamicRegistration: true, resolveSupport: { properties: ["edit"] } },
+          codeAction: {
+            dynamicRegistration: true,
+            dataSupport: true,
+            codeActionLiteralSupport: {
+              codeActionKind: {
+                valueSet: ["quickfix", "refactor", "refactor.extract", "refactor.rewrite"],
+              },
+            },
+            resolveSupport: { properties: ["edit", "command"] },
+          },
           codeLens: { dynamicRegistration: true },
           callHierarchy: { dynamicRegistration: true },
           typeHierarchy: { dynamicRegistration: true },
@@ -186,7 +195,7 @@ class LiveLspClient {
       else this.child.once("exit", resolve);
     });
     try {
-      await withTimeout(this.connection.sendRequest("shutdown"), "shutdown", 2500);
+      await withTimeout(this.connection.sendRequest("shutdown"), "shutdown", 15000);
       this.connection.sendNotification("exit");
     } catch {
       this.child?.kill();

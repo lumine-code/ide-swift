@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Checks on ${{ matrix.os }} (Node 24)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=high
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm pack --dry-run
+
+  integration:
+    name: Real Swift toolchain and Lumine integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LUMINE_JASMINE_REPORTER: list
+      LUMINE_TEST_PACKAGES: ide-client language-swift
+      SWIFT_VERSION: 6.4.0
+      REQUIRE_SOURCEKIT: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: ide-swift
+      - uses: actions/checkout@v7
+        with:
+          repository: lumine-code/lumine
+          path: lumine
+      - uses: actions/checkout@v7
+        with:
+          repository: lumine-code/ide-client
+          path: ide-client
+      - uses: actions/checkout@v7
+        with:
+          repository: lumine-code/language-swift
+          path: language-swift
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: lumine/.nvmrc
+          cache: npm
+          cache-dependency-path: lumine/package-lock.json
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update || true
+          sudo apt-get install -y xvfb libx11-dev libxkbfile-dev libsecret-1-dev clang libicu-dev libcurl4-openssl-dev libxml2-dev libncurses-dev libz-dev
+      - name: Use HTTPS for public Git dependencies
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      - name: Install adapter dependencies
+        working-directory: ide-swift
+        run: npm ci --ignore-scripts
+      - name: Install client dependencies
+        working-directory: ide-client
+        run: npm ci --ignore-scripts
+      - name: Install the exact verified complete Swift toolchain
+        working-directory: ide-swift
+        run: |
+          node scripts/ci-toolchain.js "$GITHUB_WORKSPACE/.swift-toolchain" "$SWIFT_VERSION"
+          echo "SWIFT_SERVER_PATH=$(cat "$GITHUB_WORKSPACE/.swift-toolchain/server-path.txt")" >> "$GITHUB_ENV"
+      - name: Install editor dependencies
+        working-directory: lumine
+        run: |
+          install() { npm ci --ignore-scripts; }
+          install || install || install
+      - name: Prepare Electron
+        working-directory: lumine
+        run: |
+          node node_modules/electron/install.js
+          npm run build
+      - name: Link editor service packages
+        run: |
+          echo "LUMINE_HOME=$GITHUB_WORKSPACE/.test-home" >> "$GITHUB_ENV"
+          mkdir -p "$GITHUB_WORKSPACE/.test-home/packages"
+          ln -s "$GITHUB_WORKSPACE/ide-client" "$GITHUB_WORKSPACE/.test-home/packages/ide-client"
+          ln -s "$GITHUB_WORKSPACE/language-swift" "$GITHUB_WORKSPACE/.test-home/packages/language-swift"
+      - name: Run Jasmine specs against the real editor and server
+        working-directory: lumine
+        timeout-minutes: 20
+        run: xvfb-run --auto-servernum npm start -- --dev --test ../ide-swift/spec
