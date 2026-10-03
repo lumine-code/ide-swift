@@ -40,8 +40,31 @@ liveSuite("ide-swift real SourceKit-LSP protocol", () => {
     await prepareProject(fixture, serverPath, toolchainPath);
     await client.start();
     const covered = await exerciseServer(client, fixture);
-    expect(covered.length).toBeGreaterThanOrEqual(23);
-    expect(covered).toContain("UTF-16 rename");
-    expect(covered).toContain("module definition");
+    expect(covered).toEqual(
+      jasmine.arrayContaining([
+        "diagnostics",
+        "dynamic registrations",
+        "completion",
+        "completion resolve",
+        "hover",
+        "signature",
+        "definition",
+        "module definition",
+        "references",
+        "UTF-16 rename",
+        "document symbols",
+        "workspace symbols",
+        "formatting",
+        "code actions",
+        "code action edits",
+        "inlay hints",
+        "semantic tokens",
+        "incoming calls",
+        "outgoing calls",
+        "type subtypes",
+        "type supertypes",
+        "diagnostic clearing",
+      ]),
+    );
   });
 });

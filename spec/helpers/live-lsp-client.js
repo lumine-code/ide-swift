@@ -153,6 +153,7 @@ class LiveLspClient {
         general: { positionEncodings: ["utf-16"] },
       },
     });
+    this.capabilities = result.capabilities;
     this.connection.sendNotification("initialized", {});
     this.connection.sendNotification("workspace/didChangeConfiguration", {
       settings: this.adapter.getSettings?.() || {},

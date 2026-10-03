@@ -97,5 +97,6 @@ liveSuite("ide-swift verified managed toolchain", () => {
     const covered = await exerciseServer(client, fixture);
     expect(covered).toContain("module definition");
     expect(covered).toContain("type subtypes");
+    expect(covered).toContain("inlay hint resolve");
   });
 });

@@ -28,6 +28,20 @@ const at = (client, fixture, method, fragment, inside = 0, extra = {}) =>
     position: position(fixture.text, fragment, inside),
     ...extra,
   });
+const resolveInlayHint = async (client, hint) => {
+  const registration = client.registrations.findLast(
+    ({ method }) => method === "textDocument/inlayHint",
+  );
+  const options = registration
+    ? registration.registerOptions
+    : client.capabilities?.inlayHintProvider;
+  if (!options?.resolveProvider) return false;
+  assert.ok(
+    await client.request("inlayHint/resolve", hint),
+    "inlay hint resolve has no usable result",
+  );
+  return true;
+};
 const exerciseServer = async (client, fixture) => {
   const covered = [];
   const check = (name, value) => {
@@ -145,7 +159,7 @@ const exerciseServer = async (client, fixture) => {
     "inlay hints",
     hints.some(({ label }) => JSON.stringify(label).includes("Int")),
   );
-  check("inlay hint resolve", await client.request("inlayHint/resolve", hints[0]));
+  if (await resolveInlayHint(client, hints[0])) covered.push("inlay hint resolve");
   const tokens = await client.request("textDocument/semanticTokens/full", {
     textDocument: { uri: fixture.uri },
   });
@@ -193,4 +207,4 @@ const exerciseServer = async (client, fixture) => {
   );
   return covered;
 };
-module.exports = { exerciseServer, applyEdits, editsOf, position, sameFile };
+module.exports = { exerciseServer, resolveInlayHint, applyEdits, editsOf, position, sameFile };
