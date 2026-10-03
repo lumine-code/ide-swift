@@ -188,6 +188,29 @@ describe("ide-swift adapter and distribution integrity", () => {
   it("pins the independently published Swift release key fingerprint", () => {
     expect(installer.signingFingerprint).toBe("52bb7e3de28a71be22ec05ffef80a866b47a981f");
   });
+  it("verifies real binary signatures in the editor stream realm and rejects tampering and foreign keys", async () => {
+    const openpgp = require("openpgp");
+    const generated = await openpgp.generateKey({
+      type: "ecc",
+      curve: "ed25519",
+      userIDs: [{ name: "Swift installer regression fixture" }],
+    });
+    const bytes = new Uint8Array([0, 255, 13, 10, 128, 0, 65]);
+    const signature = await openpgp.sign({
+      message: await openpgp.createMessage({ binary: bytes }),
+      signingKeys: await openpgp.readPrivateKey({ armoredKey: generated.privateKey }),
+      detached: true,
+    });
+    const archive = path.join(directory, "signed-data.bin");
+    fs.writeFileSync(archive, bytes);
+    const key = await openpgp.readKey({ armoredKey: generated.publicKey });
+    await installer.verifyPgpData(archive, signature, key);
+    await expectAsync(
+      installer.verifyPgp(archive, signature, generated.publicKey),
+    ).toBeRejectedWithError(/pinned official fingerprint/);
+    fs.appendFileSync(archive, new Uint8Array([1]));
+    await expectAsync(installer.verifyPgpData(archive, signature, key)).toBeRejected();
+  }, 30000);
   it("refuses foreign metadata URLs and unsafe extraction paths", async () => {
     await expectAsync(installer.fetchText("https://example.org/sdk")).toBeRejectedWithError(
       /Unexpected Swift/,
