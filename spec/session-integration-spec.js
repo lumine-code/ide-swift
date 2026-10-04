@@ -88,7 +88,8 @@ liveSuite("ide-swift real editor routing and process ownership", () => {
       ),
     ).toBe(true);
     expect(
-      (await clientMain.provideHover().hover(editor, at("double(value: 3)", 1))).contents.value,
+      (await clientMain.provideContextHelp().getHelp(editor, at("double(value: 3)", 1))).contents
+        .value,
     ).toContain("Returns twice");
     expect(
       (await clientMain.provideHoverSignature().getSignature(editor, at("double(value: 3)", 14)))
