@@ -92,20 +92,27 @@ describe("ide-swift adapter and distribution integrity", () => {
     expect(missing.calls.argsFor(0)[0]).toBe("ide-swift");
     expect(missing.calls.argsFor(0)[1].description).toContain("complete Swift toolchain");
   });
-  it("prefers an explicit server and never probes a managed or PATH fallback", async () => {
+  it("uses an explicit server without reading a corrupt managed installation", async () => {
     spyOn(server, "probe").and.resolveTo();
     spyOn(resolver, "findExecutables");
+    const getManagedServer = jasmine
+      .createSpy("getManagedServer")
+      .and.throwError("Corrupt managed record");
     expect(
       (
-        await server.resolveServer(
-          resolutionContext({ managedServer: { binaryPath: "/other/server" }, resolver }),
-          { serverPath: process.execPath, toolchainPath: "" },
-        )
+        await server.resolveServer(resolutionContext({ getManagedServer, resolver }), {
+          serverPath: process.execPath,
+          toolchainPath: "",
+        })
       ).command,
     ).toBe(process.execPath);
     expect(resolver.findExecutables).not.toHaveBeenCalled();
+    expect(getManagedServer).not.toHaveBeenCalled();
+    await expectAsync(
+      server.resolveServer(resolutionContext({ getManagedServer, resolver })),
+    ).toBeRejectedWithError("Corrupt managed record");
   });
-  it("prefers an explicitly selected toolchain over the managed installation", async () => {
+  it("uses an explicitly selected toolchain without reading a corrupt managed installation", async () => {
     const native = process.platform === "win32" ? "sourcekit-lsp.exe" : "sourcekit-lsp";
     const executable = path.join(directory, "usr", "bin", native);
     fs.mkdirSync(path.dirname(executable), { recursive: true });
@@ -113,13 +120,17 @@ describe("ide-swift adapter and distribution integrity", () => {
     fs.chmodSync(executable, 0o755);
     spyOn(server, "probe").and.resolveTo();
     spyOn(resolver, "findExecutables");
-    const launch = await server.resolveServer(
-      resolutionContext({ managedServer: { binaryPath: "/other/server" }, resolver }),
-      { serverPath: "", toolchainPath: directory },
-    );
+    const getManagedServer = jasmine
+      .createSpy("getManagedServer")
+      .and.throwError("Corrupt managed record");
+    const launch = await server.resolveServer(resolutionContext({ getManagedServer, resolver }), {
+      serverPath: "",
+      toolchainPath: directory,
+    });
     expect(launch.command).toBe(executable);
     expect(launch.env.SOURCEKIT_TOOLCHAIN_PATH).toBe(directory);
     expect(resolver.findExecutables).not.toHaveBeenCalled();
+    expect(getManagedServer).not.toHaveBeenCalled();
   });
   it("uses a managed matched-toolchain server before PATH", async () => {
     spyOn(server, "probe").and.resolveTo();
