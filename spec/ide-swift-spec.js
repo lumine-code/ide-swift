@@ -1,10 +1,11 @@
+const { resolutionContext } = require("./helpers/server-resolution");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { removeProject } = require("./helpers/project");
 
 describe("ide-swift adapter and distribution integrity", () => {
-  let main, server, installer, bundle, adapter, edge, directory, changed;
+  let main, server, installer, bundle, adapter, edge, directory, changed, resolver;
   const configure = (name, value) => {
     changed.add(name);
     lumine.config.set(`ide-swift.${name}`, value);
@@ -26,6 +27,7 @@ describe("ide-swift adapter and distribution integrity", () => {
     bundle = require("../lib/windows-bundle");
     changed = new Set();
     directory = fs.mkdtempSync(path.join(fs.realpathSync.native(os.tmpdir()), "ide-swift-unit-"));
+    resolver = resolutionContext().resolver;
     register();
   });
   afterEach(async () => {
@@ -92,11 +94,16 @@ describe("ide-swift adapter and distribution integrity", () => {
   });
   it("prefers an explicit server and never probes a managed or PATH fallback", async () => {
     spyOn(server, "probe").and.resolveTo();
-    spyOn(server, "executablesOnPath");
+    spyOn(resolver, "findExecutables");
     expect(
-      (await server.resolveServer(process.execPath, { binaryPath: "/other/server" })).command,
+      (
+        await server.resolveServer(
+          resolutionContext({ managedServer: { binaryPath: "/other/server" }, resolver }),
+          { serverPath: process.execPath, toolchainPath: "" },
+        )
+      ).command,
     ).toBe(process.execPath);
-    expect(server.executablesOnPath).not.toHaveBeenCalled();
+    expect(resolver.findExecutables).not.toHaveBeenCalled();
   });
   it("prefers an explicitly selected toolchain over the managed installation", async () => {
     const native = process.platform === "win32" ? "sourcekit-lsp.exe" : "sourcekit-lsp";
@@ -105,19 +112,30 @@ describe("ide-swift adapter and distribution integrity", () => {
     fs.copyFileSync(process.execPath, executable);
     fs.chmodSync(executable, 0o755);
     spyOn(server, "probe").and.resolveTo();
-    spyOn(server, "executablesOnPath");
-    const launch = await server.resolveServer("", { binaryPath: "/other/server" }, directory);
+    spyOn(resolver, "findExecutables");
+    const launch = await server.resolveServer(
+      resolutionContext({ managedServer: { binaryPath: "/other/server" }, resolver }),
+      { serverPath: "", toolchainPath: directory },
+    );
     expect(launch.command).toBe(executable);
     expect(launch.env.SOURCEKIT_TOOLCHAIN_PATH).toBe(directory);
-    expect(server.executablesOnPath).not.toHaveBeenCalled();
+    expect(resolver.findExecutables).not.toHaveBeenCalled();
   });
   it("uses a managed matched-toolchain server before PATH", async () => {
     spyOn(server, "probe").and.resolveTo();
-    spyOn(server, "executablesOnPath");
+    spyOn(resolver, "findExecutables");
     expect(
-      (await server.resolveServer("", { binaryPath: process.execPath, version: "6.4.0" })).version,
+      (
+        await server.resolveServer(
+          resolutionContext({
+            managedServer: { binaryPath: process.execPath, version: "6.4.0" },
+            resolver,
+          }),
+          { serverPath: "", toolchainPath: "" },
+        )
+      ).version,
     ).toBe("6.4.0");
-    expect(server.executablesOnPath).not.toHaveBeenCalled();
+    expect(resolver.findExecutables).not.toHaveBeenCalled();
   });
   it("resolves Apple's launcher to the selected Xcode toolchain before probing", async () => {
     const selected =
@@ -125,7 +143,9 @@ describe("ide-swift adapter and distribution integrity", () => {
     spyOn(fs.promises, "realpath").and.callFake(async (file) => file);
     spyOn(server, "run").and.resolveTo(selected);
     expect(await server.resolveExecutable("/usr/bin/sourcekit-lsp", "darwin")).toBe(selected);
-    expect(server.run).toHaveBeenCalledOnceWith("/usr/bin/xcrun", ["--find", "sourcekit-lsp"]);
+    expect(server.run).toHaveBeenCalledOnceWith("/usr/bin/xcrun", ["--find", "sourcekit-lsp"], {
+      signal: undefined,
+    });
   });
   it("keeps native Linux executables and explicit macOS toolchains independent of xcrun", async () => {
     spyOn(fs.promises, "realpath").and.callFake(async (file) => file);
@@ -154,21 +174,37 @@ describe("ide-swift adapter and distribution integrity", () => {
     fs.copyFileSync(process.execPath, executable);
     fs.chmodSync(executable, 0o755);
     spyOn(server, "resolveExecutable").and.resolveTo(executable);
+    const launcher = path.join(directory, "sourcekit-launcher");
+    fs.writeFileSync(launcher, "launcher");
+    fs.chmodSync(launcher, 0o755);
     spyOn(server, "probe").and.resolveTo();
-    const launch = await server.resolveServer("/usr/bin/sourcekit-lsp", null);
+    const launch = await server.resolveServer(
+      resolutionContext({ managedServer: null, resolver }),
+      { serverPath: launcher, toolchainPath: "" },
+    );
     expect(launch.command).toBe(executable);
     expect(launch.env.SOURCEKIT_TOOLCHAIN_PATH).toBe(directory);
-    expect(server.probe).toHaveBeenCalledWith(executable, launch.env);
+    expect(server.probe).toHaveBeenCalledWith(executable, launch.env, undefined);
   });
   it("skips an unusable PATH candidate but refuses to replace an explicit invalid selection", async () => {
-    spyOn(server, "executablesOnPath").and.returnValue([
+    spyOn(resolver, "findExecutables").and.returnValue([
       path.join(directory, "absent"),
       process.execPath,
     ]);
     spyOn(server, "probe").and.resolveTo();
-    expect((await server.resolveServer("", null)).command).toBe(process.execPath);
+    expect(
+      (
+        await server.resolveServer(resolutionContext({ managedServer: null, resolver }), {
+          serverPath: "",
+          toolchainPath: "",
+        })
+      ).command,
+    ).toBe(process.execPath);
     await expectAsync(
-      server.resolveServer(path.join(directory, "absent"), { binaryPath: process.execPath }),
+      server.resolveServer(
+        resolutionContext({ managedServer: { binaryPath: process.execPath }, resolver }),
+        { serverPath: path.join(directory, "absent"), toolchainPath: "" },
+      ),
     ).toBeRejected();
   });
   it("probes actual server help instead of accepting any executable", async () => {
