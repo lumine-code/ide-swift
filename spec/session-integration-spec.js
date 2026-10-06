@@ -95,21 +95,23 @@ liveSuite("ide-swift real editor routing and process ownership", () => {
       (await clientMain.provideHoverSignature().getSignature(editor, at("double(value: 3)", 14)))
         .signatures[0].label,
     ).toContain("value: Int");
-    expect(
-      (await clientMain.provideSymbol().getSymbols({ editor, type: "file" })).some(
-        ({ name }) => name === "double(value:)",
-      ),
-    ).toBe(true);
+    const documentProvider = clientMain.provideDocumentSymbolProvider();
+    const source = documentProvider
+      .getDocumentSymbolSources(editor)
+      .find(({ id }) => id === "ide-client:ide-swift");
+    expect(source.state).toBe("ready");
+    const symbols = await documentProvider.getDocumentSymbols(editor, { sourceId: source.id });
+    expect(symbols.some(({ name }) => name === "double(value:)")).toBe(true);
     await until(
       async () =>
-        (
-          await clientMain.provideSymbol().getSymbols({ editor, type: "project", query: "double" })
-        ).some(({ name }) => name === "double(value:)"),
+        (await clientMain.provideWorkspaceSymbolProvider().searchWorkspaceSymbols("double")).some(
+          ({ name }) => name === "double(value:)",
+        ),
       "Swift project symbols",
     );
     editor.setCursorBufferPosition(at("triple(value: 3)", 1));
     expect(
-      (await clientMain.provideSymbol().getSymbols({ editor, type: "project-find" })).some(
+      (await clientMain.provideDefinitionProvider().getDefinitions(editor)).some(
         ({ path: target }) => target?.toLowerCase() === fixture.supportPath.toLowerCase(),
       ),
     ).toBe(true);
