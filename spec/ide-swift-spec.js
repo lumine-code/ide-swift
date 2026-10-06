@@ -11,7 +11,7 @@ describe("ide-swift adapter and distribution integrity", () => {
     lumine.config.set(`ide-swift.${name}`, value);
   };
   const register = () => {
-    edge = main.consumeIdeClient({
+    edge = main.consumeIde({
       registerAdapter(value) {
         adapter = value;
         return { dispose: jasmine.createSpy("dispose") };
@@ -47,8 +47,8 @@ describe("ide-swift adapter and distribution integrity", () => {
   it("provides a useful tip and independent edge disposables", () => {
     const first = { dispose: jasmine.createSpy("first") },
       second = { dispose: jasmine.createSpy("second") };
-    expect(main.consumeIdeClient({ registerAdapter: () => first })).toBe(first);
-    expect(main.consumeIdeClient({ registerAdapter: () => second })).toBe(second);
+    expect(main.consumeIde({ registerAdapter: () => first })).toBe(first);
+    expect(main.consumeIde({ registerAdapter: () => second })).toBe(second);
     first.dispose();
     expect(second.dispose).not.toHaveBeenCalled();
     expect(main.provideBackgroundTips().packageName).toBe("ide-swift");
@@ -80,7 +80,7 @@ describe("ide-swift adapter and distribution integrity", () => {
   });
   it("reports an absent server through the hub", async () => {
     const missing = jasmine.createSpy("missing");
-    main.consumeIdeClient({
+    main.consumeIde({
       registerAdapter(value) {
         adapter = value;
         return edge;

@@ -20,9 +20,9 @@ liveSuite("ide-swift verified managed toolchain", () => {
     directory = fs.mkdtempSync(
       path.join(fs.realpathSync.native(os.tmpdir()), "ide-swift-managed-"),
     );
-    for (const name of ["ide-client", "ide-swift"]) await lumine.packages.activatePackage(name);
+    for (const name of ["ide", "ide-swift"]) await lumine.packages.activatePackage(name);
     const main = lumine.packages.getActivePackage("ide-swift").mainModule;
-    edge = main.consumeIdeClient({
+    edge = main.consumeIde({
       registerAdapter(adapter) {
         client = new LiveLspClient(adapter, path.join(directory, "project"));
         return { dispose() {} };
@@ -35,11 +35,11 @@ liveSuite("ide-swift verified managed toolchain", () => {
     edge?.dispose();
     managed?.emitter.dispose();
     for (const key of ["serverPath", "toolchainPath"]) lumine.config.unset(`ide-swift.${key}`);
-    for (const name of ["ide-swift", "ide-client"]) await lumine.packages.deactivatePackage(name);
+    for (const name of ["ide-swift", "ide"]) await lumine.packages.deactivatePackage(name);
     await removeProject(directory);
   });
   it("verifies the complete official SDK, stages all resources and launches its real server", async () => {
-    const clientPath = lumine.packages.getActivePackage("ide-client").path;
+    const clientPath = lumine.packages.getActivePackage("ide").path;
     const Managed = require(path.join(clientPath, "lib", "managed-servers"));
     const Api = require(path.join(clientPath, "lib", "install-api"));
     const storagePath = path.join(directory, "managed");

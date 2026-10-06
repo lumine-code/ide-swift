@@ -20,7 +20,7 @@ liveSuite("ide-swift real SourceKit-LSP protocol", () => {
     lumine.config.set("ide-swift.serverPath", serverPath);
     lumine.config.set("ide-swift.toolchainPath", toolchainPath);
     const main = (await lumine.packages.activatePackage("ide-swift")).mainModule;
-    edge = main.consumeIdeClient({
+    edge = main.consumeIde({
       registerAdapter(adapter) {
         client = new LiveLspClient(adapter, directory);
         return { dispose() {} };

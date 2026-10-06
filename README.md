@@ -2,7 +2,7 @@
 
 Provide Swift language features with SourceKit-LSP.
 
-Registers the official [SourceKit-LSP](https://github.com/swiftlang/sourcekit-lsp) server from a complete Swift toolchain with `ide-client`. Install `language-swift` for syntax highlighting and the editor service frontends for the features you want to display.
+Registers the official [SourceKit-LSP](https://github.com/swiftlang/sourcekit-lsp) server from a complete Swift toolchain with `ide`. Install `language-swift` for syntax highlighting and the editor service frontends for the features you want to display.
 
 ## Features
 
@@ -19,7 +19,7 @@ Registers the official [SourceKit-LSP](https://github.com/swiftlang/sourcekit-ls
 
 To install `ide-swift` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/ide-swift`.
 
-Install `ide-client` and `language-swift`, then use `ide-client:manage-servers` to install a complete Swift toolchain, or install [Swift](https://www.swift.org/install/) yourself. SourceKit-LSP, the Swift compiler, formatter, SDK resources and runtime must remain at matching versions. Selecting a copied server executable alone cannot supply that environment.
+Install `ide` and `language-swift`, then use `ide:manage-servers` to install a complete Swift toolchain, or install [Swift](https://www.swift.org/install/) yourself. SourceKit-LSP, the Swift compiler, formatter, SDK resources and runtime must remain at matching versions. Selecting a copied server executable alone cannot supply that environment.
 
 Managed installation downloads the complete official toolchain. Linux archives are verified against Swift's detached release signature and the pinned official signing-key fingerprint. macOS packages require a trusted Swift Developer ID signature and are expanded as data. Windows downloads use the published WinGet SHA256 hash; the Apple installer bundle and its embedded payload hashes are verified before a MIT-licensed extraction helper reads its MSI files. No installer action runs, no system registry entry is written, and removing the managed copy leaves separately installed toolchains intact. Downloads are large: Swift 6.4 uses about 1.1 GB on Ubuntu and 2.1 GB on Windows before extraction.
 
@@ -33,7 +33,7 @@ Project `.swift-format` files govern formatting. Feature switches control which 
 
 ## Services
 
-- `ide-client`: consumed to register SourceKit-LSP and its matched toolchain.
+- `ide`: consumed to register SourceKit-LSP and its matched toolchain.
 - `background-tips.provider`: provided to background-tips to describe Swift packages and toolchain setup.
 
 ## Contributing

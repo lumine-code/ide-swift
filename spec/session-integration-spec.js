@@ -27,17 +27,17 @@ liveSuite("ide-swift real editor routing and process ownership", () => {
     directory = fs.mkdtempSync(path.join(fs.realpathSync.native(os.tmpdir()), "ide-swift-editor-"));
     lumine.config.set("ide-swift.serverPath", serverPath);
     lumine.config.set("ide-swift.toolchainPath", toolchainPath);
-    for (const name of ["language-swift", "ide-client", "ide-swift"])
+    for (const name of ["language-swift", "ide", "ide-swift"])
       await lumine.packages.activatePackage(name);
-    clientMain = lumine.packages.getActivePackage("ide-client").mainModule;
-    service = clientMain.provideIdeClient();
+    clientMain = lumine.packages.getActivePackage("ide").mainModule;
+    service = clientMain.provideIde();
     diagnostics = [];
     edge = service.onDidPublishDiagnostics((event) => diagnostics.push(event));
   });
   afterEach(async () => {
     edge?.dispose();
     editor?.destroy();
-    for (const name of ["ide-swift", "ide-client", "language-swift"])
+    for (const name of ["ide-swift", "ide", "language-swift"])
       await lumine.packages.deactivatePackage(name);
     for (const key of ["serverPath", "toolchainPath", "features"])
       lumine.config.unset(`ide-swift.${key}`);
@@ -98,7 +98,7 @@ liveSuite("ide-swift real editor routing and process ownership", () => {
     const documentProvider = clientMain.provideDocumentSymbolProvider();
     const source = documentProvider
       .getDocumentSymbolSources(editor)
-      .find(({ id }) => id === "ide-client:ide-swift");
+      .find(({ id }) => id === "ide:ide-swift");
     expect(source.state).toBe("ready");
     const symbols = await documentProvider.getDocumentSymbols(editor, { sourceId: source.id });
     expect(symbols.some(({ name }) => name === "double(value:)")).toBe(true);

@@ -40,7 +40,7 @@ jobs:
     timeout-minutes: 60
     env:
       LUMINE_JASMINE_REPORTER: list
-      LUMINE_TEST_PACKAGES: ide-client language-swift
+      LUMINE_TEST_PACKAGES: ide language-swift
       SWIFT_VERSION: 6.4.0
       REQUIRE_SOURCEKIT: 1
     steps:
@@ -53,8 +53,8 @@ jobs:
           path: lumine
       - uses: actions/checkout@v7
         with:
-          repository: lumine-code/ide-client
-          path: ide-client
+          repository: lumine-code/ide
+          path: ide
       - uses: actions/checkout@v7
         with:
           repository: lumine-code/language-swift
@@ -74,7 +74,7 @@ jobs:
         working-directory: ide-swift
         run: npm ci --ignore-scripts
       - name: Install client dependencies
-        working-directory: ide-client
+        working-directory: ide
         run: npm ci --ignore-scripts
       - name: Install the exact verified complete Swift toolchain
         working-directory: ide-swift
@@ -95,7 +95,7 @@ jobs:
         run: |
           echo "LUMINE_HOME=$GITHUB_WORKSPACE/.test-home" >> "$GITHUB_ENV"
           mkdir -p "$GITHUB_WORKSPACE/.test-home/packages"
-          ln -s "$GITHUB_WORKSPACE/ide-client" "$GITHUB_WORKSPACE/.test-home/packages/ide-client"
+          ln -s "$GITHUB_WORKSPACE/ide" "$GITHUB_WORKSPACE/.test-home/packages/ide"
           ln -s "$GITHUB_WORKSPACE/language-swift" "$GITHUB_WORKSPACE/.test-home/packages/language-swift"
       - name: Run Jasmine specs against the real editor and server
         working-directory: lumine
