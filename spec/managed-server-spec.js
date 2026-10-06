@@ -7,7 +7,7 @@ const { createProject, prepareProject, removeProject } = require("./helpers/proj
 const { exerciseServer } = require("./helpers/exercise-server");
 const { liveSuite } = require("./helpers/environment");
 liveSuite("ide-swift verified managed toolchain", () => {
-  let directory, client, edge, managed, timeout;
+  let directory, client, edge, managed, manager, timeout;
   beforeAll(() => {
     timeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
@@ -33,7 +33,8 @@ liveSuite("ide-swift verified managed toolchain", () => {
   afterEach(async () => {
     await client?.stop();
     edge?.dispose();
-    managed?.emitter.dispose();
+    managed?.dispose();
+    await manager?.deactivate();
     for (const key of ["serverPath", "toolchainPath"]) lumine.config.unset(`ide-swift.${key}`);
     for (const name of ["ide-swift", "ide"]) await lumine.packages.deactivatePackage(name);
     await removeProject(directory);
@@ -41,10 +42,12 @@ liveSuite("ide-swift verified managed toolchain", () => {
   it("verifies the complete official SDK, stages all resources and launches its real server", async () => {
     const clientPath = lumine.packages.getActivePackage("ide").path;
     const Managed = require(path.join(clientPath, "lib", "managed-servers"));
-    const Api = require(path.join(clientPath, "lib", "install-api"));
+    const LanguageServerManager = require(path.join(clientPath, "lib", "language-server-manager"));
     const storagePath = path.join(directory, "managed");
-    managed = new Managed({}, { storageRoot: storagePath });
-    const actual = new Api(managed, { id: "ide-swift" });
+    manager = new LanguageServerManager();
+    manager.registerAdapter(client.adapter);
+    managed = new Managed(manager, { storageRoot: storagePath });
+    const actual = managed.apiFor(client.adapter);
     const api = {
       downloadFile: async (url, target, options) => {
         const cached = process.env.SWIFT_INSTALLER_CACHE;
