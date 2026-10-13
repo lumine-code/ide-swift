@@ -82,6 +82,17 @@ describe("Swift installer cancellation ownership", () => {
       expect(source).not.toHaveBeenCalled();
     });
   }
+  it("does not parse certificate history when cancelled while its verifier loads", async () => {
+    const controller = new AbortController();
+    const reason = new Error("Swift certificate recovery cancelled");
+    const key = { getFingerprint: jasmine.createSpy("fingerprint") };
+    const pending = installer.mergeSigningKeyHistory(key, "Not an armored key", {
+      signal: controller.signal,
+    });
+    controller.abort(reason);
+    await expectAsync(pending).toBeRejectedWith(reason);
+    expect(key.getFingerprint).not.toHaveBeenCalled();
+  });
   it("waits for a cancelled helper to close before retiring staging", async () => {
     const controller = new AbortController();
     const reason = new Error("Swift helper cancelled");
