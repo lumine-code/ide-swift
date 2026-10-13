@@ -48,6 +48,7 @@ jobs:
     env:
       LUMINE_JASMINE_REPORTER: list
       LUMINE_DISABLE_SHELLING_OUT_FOR_ENVIRONMENT: "true"
+      SWIFT_FIXTURE_ONLY: "1"
       LUMINE_HOME: ${{ github.workspace }}/ide-swift-spec-home
       HOME: ${{ github.workspace }}/ide-swift-spec-home
       XDG_CONFIG_HOME: ${{ github.workspace }}/ide-swift-spec-home
