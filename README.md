@@ -15,6 +15,8 @@ Registers the official [SourceKit-LSP](https://github.com/swiftlang/sourcekit-ls
 - **Managed installation**: preserves a complete matched Swift compiler, server, SDK and runtime with verified official distribution provenance.
 - **Project support**: loads Swift Package Manager projects and preserves their dependency graph and SourceKit-LSP configuration.
 
+![SourceKit-LSP explains a type mismatch in Swift.](.github/demo.png)
+
 ## Installation
 
 To install `ide-swift` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/ide-swift`.

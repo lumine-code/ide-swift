@@ -1,0 +1,16 @@
+{
+  "title": "ide-swift",
+  "description": "SourceKit-LSP explains a type mismatch in Swift.",
+  "recordedOn": "2026-10-13",
+  "sourceRevision": "adfbfb67eff3a1049130bac7a6ee6c6c4609ed06",
+  "mode": "normal",
+  "fontSettings": "default",
+  "images": [
+    {
+      "file": "demo.png",
+      "label": "SourceKit-LSP explains a type mismatch in Swift.",
+      "width": 1100,
+      "height": 490
+    }
+  ]
+}
