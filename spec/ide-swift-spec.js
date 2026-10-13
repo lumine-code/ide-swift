@@ -277,7 +277,7 @@ describe("ide-swift adapter and distribution integrity", () => {
     expect(installer.signingFingerprint).toBe("52bb7e3de28a71be22ec05ffef80a866b47a981f");
   });
   it("verifies real binary signatures in the editor stream realm and rejects tampering and foreign keys", async () => {
-    const openpgp = require("openpgp");
+    const openpgp = await import("openpgp");
     const generated = await openpgp.generateKey({
       type: "ecc",
       curve: "ed25519",

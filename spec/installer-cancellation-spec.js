@@ -65,6 +65,23 @@ describe("Swift installer cancellation ownership", () => {
     ).toBeRejectedWith(reason);
     expect(childProcess.execFile).not.toHaveBeenCalled();
   });
+  for (const operation of ["verifyPgp", "verifyPgpData"]) {
+    it(`does not read distribution bytes when cancelled while ${operation} loads its verifier`, async () => {
+      const controller = new AbortController();
+      const reason = new Error("Swift verification cancelled");
+      const source = spyOn(fs, "createReadStream").and.callThrough();
+      const archive = path.join(directory, "unopened.bin");
+      const pending = installer[operation](
+        archive,
+        "Not an armored signature",
+        operation === "verifyPgp" ? "Not an armored key" : {},
+        { signal: controller.signal },
+      );
+      controller.abort(reason);
+      await expectAsync(pending).toBeRejectedWith(reason);
+      expect(source).not.toHaveBeenCalled();
+    });
+  }
   it("waits for a cancelled helper to close before retiring staging", async () => {
     const controller = new AbortController();
     const reason = new Error("Swift helper cancelled");
