@@ -73,10 +73,10 @@ liveSuite("ide-swift verified managed toolchain", () => {
     const installer = require("../lib/installer");
     const installed = await installer.installServer({
       storagePath,
-      version: process.env.SWIFT_VERSION || "6.4.0",
+      version: process.env.SWIFT_VERSION || "6.4.1",
       api,
     });
-    expect(installed.version).toBe(process.env.SWIFT_VERSION || "6.4.0");
+    expect(installed.version).toBe(process.env.SWIFT_VERSION || "6.4.1");
     expect(installed.binaryChecksum).toMatch(/^sha256:[a-f0-9]{64}$/);
     expect(fs.existsSync(path.join(storagePath, "provenance", "Swift-LICENSE.txt"))).toBe(true);
     if (process.platform === "win32") {
