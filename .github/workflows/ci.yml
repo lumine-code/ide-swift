@@ -113,7 +113,7 @@ jobs:
     env:
       LUMINE_JASMINE_REPORTER: list
       LUMINE_TEST_PACKAGES: ide language-swift
-      SWIFT_VERSION: 6.4.1
+      SWIFT_VERSION: 6.4.2
       REQUIRE_SOURCEKIT: 1
     steps:
       - uses: actions/checkout@v7
