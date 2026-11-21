@@ -195,7 +195,7 @@
     }
   },
   "dependencies": {
-    "openpgp": "^6.3.2"
+    "openpgp": "^6.3.3"
   },
   "overrides": {
     "eslint@^10.15.0": {
